@@ -1,6 +1,6 @@
 import ballerina/http;
 import ballerinax/slack;
-// import ballerina/io;
+import ballerina/io;
 
 type SlackConfig record {
     string authToken;
@@ -8,13 +8,14 @@ type SlackConfig record {
     
 };
 
-type Message record{
+public type Message record {|
     string text;
-};
+|};
 
 type output record {
     string message;
 };
+
 
 configurable SlackConfig config = ?;
 
@@ -30,45 +31,18 @@ slack:Client slackClient = check new(slackConfig);
 
 // A service representing a network-accessible API bound to port `9090`
 service /slack\-api on new http:Listener(9090) {
+    resource function post sendMessageToSlack(Message msg) returns http:Ok|error? {
 
-    resource function post sendMessageToSlack(http:Caller caller,http:Request request) 
-    returns error? {
+        io:println(msg.text);
        
-        // var payload = check req.getBodyParts();
-        
-        map<string>|http:ClientError textmap = request.getFormParams();  
-
-        string msg;
-
-        if textmap is http:ClientError{
-            return;
-        }
-        else{
-            msg = <string>textmap["text"];
-        }
-
         slack:Message message = {
             channelName: config.channelName,
-            text: msg
+            text: msg.text
         };
-
-        string|error messageResponse = slackClient->postMessage(message);
-
-        // io:print(text);
-        
-
-        // if (messageResponse is error) {
-        //     output temp = { message: "Error" };
-        //     return temp;
-        // } else {
-        //     output temp = { message: "Message delivery successfull" };
-        //     return temp;
-        // }
+        _ = check slackClient->postMessage(message);
+        return http:OK;
     }
 
-    resource function get sample() returns string|error? {
-        return "HI";
-    }
 }
 
 //     resource function put updateSlackMessage(http:Caller caller, http:Request req) returns json|error {
@@ -96,12 +70,9 @@ service /slack\-api on new http:Listener(9090) {
 //         }
 //     }
 
-//     // Endpoint to delete a Slack message
-//     @http:ResourceConfig {
-//         methods: ["DELETE"],
-//         path: "/delete-message"
-//     }
-//     resource function deleteSlackMessage(http:Caller caller, http:Request req) returns json|error {
+    // Endpoint to delete a Slack message
+   
+//     resource function delete deleteSlackMessage(http:Caller caller, http:Request req) returns json|error {
 //         // Your implementation to delete a message in Slack
 //         // Extract necessary data from the request payload and delete the message
 
@@ -110,10 +81,10 @@ service /slack\-api on new http:Listener(9090) {
 //         string channel = check payload.channel;
 //         string timestamp = check payload.timestamp; // Message timestamp
 
-//         slack:Message message = {
-//             channelName: channel,
-//             timestamp: timestamp
-//         };
+//         // slack:Message message = {
+//         //     channelName: channel,
+//         //     timestamp: timestamp
+//         // };
 
 //         string|error deleteResponse = slackClient->deleteMessage(message);
 
@@ -123,6 +94,7 @@ service /slack\-api on new http:Listener(9090) {
 //             return { "message": "Message deleted successfully" };
 //         }
 //     }
+// }
 
 //     // Endpoint to list Slack channels
 //     @http:ResourceConfig {
