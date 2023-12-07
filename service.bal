@@ -37,8 +37,64 @@ service /slack\-api on new http:Listener(9090) {
        
         slack:Message message = {
             channelName: config.channelName,
-            text: msg.text
+            text: msg.text,
+
+            blocks: [   
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Support Ticket:\n*"
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Created:*\n " 
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*NIC:*\n " 
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Description*:\n"
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": true,
+                                "text": "Message"
+                            },
+                            "style": "primary",
+                            "value": "click_me_123"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": true,
+                                "text": "Discard"
+                            },
+                            "style": "danger",
+                            "value": "click_me_123"
+                        }
+                    ]
+                }
+            ]
         };
+        
         _ = check slackClient->postMessage(message);
         return http:OK;
     }
