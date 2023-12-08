@@ -1,6 +1,8 @@
 import ballerina/http;
 import ballerinax/slack;
 import ballerina/io;
+import ballerina/log;
+import ballerina/regex;
 
 type SlackConfig record {
     string authToken;
@@ -31,7 +33,7 @@ slack:Client slackClient = check new(slackConfig);
 
 // A service representing a network-accessible API bound to port `9090`
 service /slack\-api on new http:Listener(9090) {
-    resource function post sendMessageToSlack(Message msg) returns http:Ok|error? {
+    resource function post sendMessageToSlack(Message msg) returns string|error? {
 
         io:println(msg.text);
        
@@ -88,17 +90,24 @@ service /slack\-api on new http:Listener(9090) {
                                 "text": "Discard"
                             },
                             "style": "danger",
-                            "value": "click_me_123"
+                            "value": "www.google.com"
                         }
                     ]
                 }
             ]
         };
         
-        _ = check slackClient->postMessage(message);
-        return http:OK;
+        string|error messageResponse = slackClient->postMessage(message);
+        if (messageResponse is error) {
+            log:printError(string `Slack Message Failed: ${messageResponse.toString()}`);
+            return messageResponse;
+        } else {
+            log:printInfo(string `Slack Message Success: ${messageResponse}`);
+            string msgUrl = regex:replaceAll(messageResponse, "\\.", "");
+            // msgUrl = string `https://zetcco.slack.com/messages/C05NBLBQGHW/p${msgUrl}`;
+            return msgUrl;
+        }
     }
-
 }
 
 //     resource function put updateSlackMessage(http:Caller caller, http:Request req) returns json|error {
