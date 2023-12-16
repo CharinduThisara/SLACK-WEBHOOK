@@ -3,6 +3,7 @@ import ballerinax/slack;
 import ballerina/io;
 import ballerina/log;
 import ballerina/regex;
+import ballerina/time;
 
 type SlackConfig record {
     string authToken;
@@ -11,7 +12,10 @@ type SlackConfig record {
 };
 
 public type Message record {|
-    string text;
+    string username;
+    string nic;
+    string issue;
+    string description;
 |};
 
 type output record {
@@ -35,69 +39,110 @@ slack:Client slackClient = check new(slackConfig);
 service /slack\-api on new http:Listener(9090) {
     resource function post sendMessageToSlack(Message msg) returns string|error? {
 
-        io:println(msg.text);
-       
+        io:println(msg.issue);
+        io:println(msg.description);
+
+        string nictxt = "*NIC:* "+msg.nic;
+        string usrtxt = "*User:* "+msg.username;
+        string issuetxt = "*Issue:* "+msg.issue;
+        string desctxt = "*Description:* "+msg.description;
+
+        string time = time:utcToEmailString(time:utcNow());
+
         slack:Message message = {
             channelName: config.channelName,
-            text: msg.text,
+            text: "",
 
-            blocks: [   
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Support Ticket:\n*"
-                    }
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
+            "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
                             "type": "mrkdwn",
-                            "text": "*Created:*\n " 
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "*NIC:*\n " 
+                            "text": ":warning: *Alert: User Problem* :warning:"
                         }
-                    ]
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Description*:\n"
+                    },
+                    {
+                        "type": "divider"
+                    },
+                         {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "*Timestamp:* "
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": time
+                            }
+                        ]
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": usrtxt
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": nictxt
+                            }
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": issuetxt
+                            }
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": desctxt
+                            }
+                        ]
+                    },  
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Accept",
+                                    "emoji": true
+                                },
+                                "style": "primary",
+                                "value": "accept_issue"
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Deny",
+                                    "emoji": true
+                                },
+                                "style": "danger",
+                                "value": "deny_issue"
+                            }
+                        ]
                     }
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": true,
-                                "text": "Message"
-                            },
-                            "style": "primary",
-                            "value": "click_me_123"
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": true,
-                                "text": "Discard"
-                            },
-                            "style": "danger",
-                            "value": "www.google.com"
-                        }
-                    ]
-                }
-            ]
+	]
         };
         
-        string|error messageResponse = slackClient->postMessage(message);
+        string|error messageResponse = check slackClient->postMessage(message);
         if (messageResponse is error) {
             log:printError(string `Slack Message Failed: ${messageResponse.toString()}`);
             return messageResponse;
